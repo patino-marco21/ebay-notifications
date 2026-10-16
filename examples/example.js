@@ -24,7 +24,38 @@
 const express = require('express');
 const app = express();
 
-const config = require('./config.json');
+function loadConfig() {
+    // 1. Environment variables (Render) take precedence
+    if (process.env.EBAY_CLIENT_ID && process.env.EBAY_ENDPOINT) {
+        return {
+            SANDBOX: {
+                clientId: process.env.EBAY_SANDBOX_CLIENT_ID || 'sandbox-not-configured',
+                clientSecret: process.env.EBAY_SANDBOX_CLIENT_SECRET || 'sandbox-not-configured',
+                devId: process.env.EBAY_SANDBOX_DEV_ID || 'sandbox-not-configured',
+                redirectUri: process.env.EBAY_SANDBOX_REDIRECT_URI || '',
+                baseUrl: 'api.sandbox.ebay.com'
+            },
+            PRODUCTION: {
+                clientId: process.env.EBAY_CLIENT_ID,
+                clientSecret: process.env.EBAY_CLIENT_SECRET,
+                devId: process.env.EBAY_DEV_ID || 'dev-id-not-configured',
+                redirectUri: process.env.EBAY_REDIRECT_URI || '',
+                baseUrl: 'api.ebay.com'
+            },
+            endpoint: process.env.EBAY_ENDPOINT,
+            verificationToken: process.env.EBAY_VERIFICATION_TOKEN
+        };
+    }
+    // 2. Render secret file
+    try {
+        return require('/etc/secrets/ebay-config.json');
+    } catch (e) {
+        // 3. Local fallback (development)
+        return require('./config.json');
+    }
+}
+
+const config = loadConfig();
 const constants = require('../lib/constants');
 const EventNotificationSDK = require('../lib/index');
 
